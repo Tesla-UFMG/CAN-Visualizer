@@ -43,25 +43,42 @@ uint16_t send_timer = 0;
 uint16_t id = 0;
 char print_string[128];
 
+int16_t accel_x = 0;
+int16_t accel_y = 0;
+int16_t accel_z = 0;
+int16_t t       = 0;
+int16_t gyro_x  = 0;
+int16_t gyro_y  = 0;
+int16_t gyro_z  = 0;
+
 void setup() {
-    Serial.begin(115200);
 
     while (CAN_init(CAN_BAUDRATE, MCP2515_CLOCK) == false) {
         Serial.println("Error Initializing MCP2515");
         delay(500);
     }
-    Serial.println("MCP2515 Initialized Successfully!");
+    Serial.begin(115200);
+    // Serial.println("MCP2515 Initialized Successfully!");
 }
 
 void loop() {
     if (!digitalRead(MCP2515_INT_PIN)) {
         CAN_visualizer_receive_message();
+        sprintf(print_string,
+                "\taccel_x: \t%d \taccel_y: %d \taccel_z: %d \tt: %d \tgyro_x: \t%d "
+                "\tgyro_y: %d \tgyro_z: %d",
+                accel_x, accel_y, accel_z, t, gyro_x, gyro_y, gyro_z);
+        Serial.println(print_string);
     }
+    // if (timer_wait(send_timer, DELAY_MESSAGE_TRANSMIT)) {
+    //     CAN_visualizer_send_message();
+    //     timer_restart(&send_timer);
+    // }
 
-    if (timer_wait(send_timer, DELAY_MESSAGE_TRANSMIT)) {
-        CAN_visualizer_send_message();
-        timer_restart(&send_timer);
-    }
+    // if (timer_wait(send_timer, DELAY_MESSAGE_TRANSMIT)) {
+    //     CAN_visualizer_send_message();
+    //     timer_restart(&send_timer);
+    // }
 }
 
 void CAN_visualizer_receive_message() {
@@ -69,11 +86,23 @@ void CAN_visualizer_receive_message() {
     uint16_t id_RX;
     CAN_receive_message(data_RX, &id_RX);
 
-    sprintf(print_string, "Id: %u", id_RX);
-    Serial.print(print_string);
-    sprintf(print_string, "\tWord1: \t%u \tWord2: %u \tWord3: %u \tWord4: %u", data_RX[0],
-            data_RX[1], data_RX[2], data_RX[3]);
-    Serial.println(print_string);
+    if (id_RX == 130) {
+        accel_x = data_RX[0];
+        accel_y = data_RX[1];
+        accel_z = data_RX[2];
+        t       = data_RX[3];
+    } else if (id_RX == 131) {
+        gyro_x = data_RX[0];
+        gyro_y = data_RX[1];
+        gyro_z = data_RX[2];
+    }
+
+    // sprintf(print_string, "Id: %u", id_RX);
+    // Serial.print(print_string);
+    // sprintf(print_string, "\tWord1: \t%d \tWord2: %d \tWord3: %d \tWord4: %d",
+    // data_RX[0],
+    //         data_RX[1], data_RX[2], data_RX[3]);
+    // Serial.println(print_string);
 }
 
 void CAN_visualizer_send_message() {
